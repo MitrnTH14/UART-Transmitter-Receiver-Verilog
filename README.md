@@ -67,7 +67,7 @@ The testbench is self-checking: it compares results itself and prints PASS or FA
 
 Each of tests 1–3 sends the corner values `00, FF, 55, AA, 01, 80` plus 50 random bytes.
 
-### Result (Icarus Verilog 12)
+### Result
 ```
 Test 1: DUT transmitter -> reference receiver
 Test 2: reference transmitter -> DUT receiver
@@ -86,12 +86,14 @@ The testbench was also checked by deliberately breaking the design. Each of thes
 
 ## How to run
 
-```bash
-make            # compile + simulate with Icarus Verilog
-make wave       # open the waveform in GTKWave
-```
+On [EDA Playground](https://www.edaplayground.com):
 
-The files also run in the Vivado simulator or on EDA Playground (top module: `uart_tb`). The testbench uses `CLKS_PER_BIT = 16` to keep simulation fast; the design default is 434.
+1. In the **Design** pane, add `rtl/uart_tx.v`, `rtl/uart_rx.v` and `rtl/uart_top.v` (use the **+** button for extra files).
+2. Paste `tb/uart_tb.v` into the **Testbench** pane.
+3. Pick a Verilog simulator and set the top module to `uart_tb`.
+4. Tick **Open EPWave after run** to see the waveform, then click **Run**.
+
+The testbench uses `CLKS_PER_BIT = 16` to keep simulation fast; the design default is 434.
 
 ## Possible extensions
 * Parity bit (even/odd) and configurable data bits
