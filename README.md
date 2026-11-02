@@ -100,3 +100,7 @@ The testbench uses `CLKS_PER_BIT = 16` to keep simulation fast; the design defau
 * TX and RX FIFOs so the user can queue several bytes
 * Oversampling (16× per bit) with majority voting for noisy lines
 * Run on an FPGA board and talk to a PC serial terminal
+
+## License
+
+GPL-3.0, see `LICENSE`.
