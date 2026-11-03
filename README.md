@@ -86,7 +86,8 @@ Simulation complete via $finish(1) at time 133475 NS + 0
 
 ### Waveform
 
-![UART simulation waveform](docs/waveform.png)
+<img width="1568" height="470" alt="image" src="https://github.com/user-attachments/assets/59f8d169-5e3f-4b76-93ca-c4e578f750a8" />
+
 
 - **0 – ~44 µs (Test 1):** `tx` carries each byte, and `got` matches `tx_data` every time (`errors` stays 0).
 - **~44 – ~90 µs (Test 2):** the testbench drives `rx`, and `rx_data` follows the same bytes with one `rx_valid` pulse per frame.
