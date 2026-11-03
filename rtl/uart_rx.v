@@ -1,105 +1,64 @@
+// Code your design here
+`timescale 1ns/1ps
 // ============================================================
-// UART Receiver (8N1)
-//  - The rx input is asynchronous, so it first passes through a
-//    2-flip-flop synchronizer (avoids metastability).
-//  - On a falling edge (start bit) it waits half a bit to reach the
-//    MIDDLE of the start bit, then samples every full bit after that,
-//    so each bit is read at its centre, where it is most stable.
-//  - rx_valid pulses for one clock when a byte is received correctly.
-//  - frame_err pulses if the stop bit is not 1.
+//  Simple UART (8N1)  -  Transmitter + Receiver + Top
+//
+//  Frame on the wire:  idle(1) | start(0) | D0..D7 (LSB first) | stop(1)
+//  CLKS_PER_BIT = clock frequency / baud rate  (50 MHz / 115200 = 434)
 // ============================================================
-module uart_rx #(
-    parameter CLKS_PER_BIT = 434
-)(
-    input            clk,
-    input            rst,        // synchronous, active high
-    input            rx,         // serial line
-    output reg [7:0] rx_data,
-    output reg       rx_valid,
-    output reg       frame_err
+
+
+// ------------------------------------------------------------
+//  TRANSMITTER
+//  Idea: load the whole 10-bit frame {stop, data, start} into a
+//  shift register and shift it out one bit every CLKS_PER_BIT clocks.
+// ------------------------------------------------------------
+module uart_tx #(parameter CLKS_PER_BIT = 434) (
+    input        clk, rst,
+    input        tx_start,          // 1-clock pulse: send tx_data
+    input  [7:0] tx_data,
+    output       tx,                // serial output
+    output reg   tx_busy,           // 1 while sending
+    output reg   tx_done            // 1-clock pulse when finished
 );
+    reg [9:0]  frame;               // bits still to send, frame[0] is on the wire
+    reg [3:0]  bit_cnt;             // which bit of the frame (0..9)
+    reg [15:0] clk_cnt;             // clocks spent on the current bit (baud counter)
 
-    localparam IDLE  = 2'd0,
-               START = 2'd1,
-               DATA  = 2'd2,
-               STOP  = 2'd3;
-
-    // 2-FF synchronizer
-    reg rx_meta, rx_sync;
-    always @(posedge clk) begin
-        if (rst) begin
-            rx_meta <= 1'b1;
-            rx_sync <= 1'b1;
-        end else begin
-            rx_meta <= rx;
-            rx_sync <= rx_meta;
-        end
-    end
-
-    reg [1:0]  state;
-    reg [15:0] clk_count;
-    reg [2:0]  bit_index;
-    reg [7:0]  shift_reg;
+    assign tx = frame[0];           // line idles high because frame resets to all 1s
 
     always @(posedge clk) begin
         if (rst) begin
-            state     <= IDLE;
-            clk_count <= 0;
-            bit_index <= 0;
-            shift_reg <= 8'd0;
-            rx_data   <= 8'd0;
-            rx_valid  <= 1'b0;
-            frame_err <= 1'b0;
+            frame   <= 10'h3FF;
+            tx_busy <= 0;
+            tx_done <= 0;
+            bit_cnt <= 0;
+            clk_cnt <= 0;
         end else begin
-            rx_valid  <= 1'b0;
-            frame_err <= 1'b0;
+            tx_done <= 0;
 
-            case (state)
-                IDLE: begin
-                    clk_count <= 0;
-                    bit_index <= 0;
-                    if (rx_sync == 1'b0)          // falling edge = start bit
-                        state <= START;
+            if (!tx_busy) begin
+                if (tx_start) begin                       // load the frame
+                    frame   <= {1'b1, tx_data, 1'b0};     // stop, data, start
+                    tx_busy <= 1;
+                    bit_cnt <= 0;
+                    clk_cnt <= 0;
                 end
-
-                START: begin                       // go to middle of start bit
-                    if (clk_count == (CLKS_PER_BIT - 1) / 2) begin
-                        clk_count <= 0;
-                        if (rx_sync == 1'b0)
-                            state <= DATA;         // real start bit
-                        else
-                            state <= IDLE;         // just a glitch
-                    end else
-                        clk_count <= clk_count + 1;
-                end
-
-                DATA: begin                        // sample 8 bits at their centres
-                    if (clk_count == CLKS_PER_BIT - 1) begin
-                        clk_count            <= 0;
-                        shift_reg[bit_index] <= rx_sync;   // LSB first
-                        if (bit_index == 7) begin
-                            bit_index <= 0;
-                            state     <= STOP;
-                        end else
-                            bit_index <= bit_index + 1;
-                    end else
-                        clk_count <= clk_count + 1;
-                end
-
-                STOP: begin                        // sample stop bit
-                    if (clk_count == CLKS_PER_BIT - 1) begin
-                        clk_count <= 0;
-                        state     <= IDLE;
-                        if (rx_sync == 1'b1) begin
-                            rx_data  <= shift_reg;
-                            rx_valid <= 1'b1;
-                        end else
-                            frame_err <= 1'b1;     // stop bit missing
-                    end else
-                        clk_count <= clk_count + 1;
-                end
-            endcase
+            end
+            else if (clk_cnt == CLKS_PER_BIT - 1) begin   // one bit time is over
+                clk_cnt <= 0;
+                frame   <= {1'b1, frame[9:1]};            // shift next bit out, fill with 1
+                if (bit_cnt == 9) begin                   // stop bit finished
+                    tx_busy <= 0;
+                    tx_done <= 1;
+                end else
+                    bit_cnt <= bit_cnt + 1;
+            end
+            else
+                clk_cnt <= clk_cnt + 1;
         end
     end
-
 endmodule
+
+
+// ----------------------------------------------
