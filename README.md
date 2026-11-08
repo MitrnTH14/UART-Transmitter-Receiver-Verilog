@@ -163,4 +163,4 @@ docs/
 
 ## Author
 
-**R S Muthu Mitrn**, ECE, Easwari Engineering College, Chennai
+**R S Muthu Mitrn**
