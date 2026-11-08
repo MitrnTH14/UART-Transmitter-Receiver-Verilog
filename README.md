@@ -124,7 +124,7 @@ Simulation complete via $finish(1) at time 133475 NS + 0
 
 ### Waveform
 
-<img width="1568" height="470" alt="UART waveform" src="https://github.com/user-attachments/assets/59f8d169-5e3f-4b76-93ca-c4e578f750a8" />
+![UART waveform](docs/waveform.png)
 
 - **Test 1:** `tx` carries each transmitted byte.
 - **Test 2:** the testbench drives `rx`, and `rx_data` follows the transmitted bytes.
@@ -158,7 +158,7 @@ tb/
 └── uart_tb.v       Self-checking testbench
 
 docs/
-└── waveform.png    Simulation waveform
+└── waveform.png    Simulation waveform from the current modular RTL
 ```
 
 ## Author
